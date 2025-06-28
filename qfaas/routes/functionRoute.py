@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.encoders import jsonable_encoder
-from sympy import re
 from qfaas.dependency.auth import get_current_active_user, get_current_user_token
 from qfaas.handlers.userHandler import get_role
 from qfaas.models.user import UserSchema

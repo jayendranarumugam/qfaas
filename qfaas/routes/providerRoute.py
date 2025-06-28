@@ -1,7 +1,6 @@
 from enum import Enum
 from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
-from sympy import false
 from qfaas.dependency.auth import get_current_active_user
 from qfaas.database.dbProvider import (
     add_provider,
