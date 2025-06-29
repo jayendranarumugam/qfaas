@@ -12,7 +12,7 @@ class UserSchema(BaseModel):
     displayName: Optional[str] = "QFaaS New User"
 
     class Config:
-        schema_extra = {"example": {"username": "qfaas", "password": "password_here"}}
+        json_schema_extra = {"example": {"username": "qfaas", "password": "password_here"}}
 
 
 class UserSignUpModel(BaseModel):
@@ -21,7 +21,7 @@ class UserSignUpModel(BaseModel):
     displayName: Optional[str] = "QFaaS New User"
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "username": "qfaas",
                 "password": "password_here",
@@ -38,7 +38,7 @@ class UpdateUserModel(BaseModel):
     currentPassword: str = Field(...)
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "displayName": "QFaaS New name",
                 "currentPassword": "",

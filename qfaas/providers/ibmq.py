@@ -1,63 +1,51 @@
-from qiskit import IBMQ
-from qiskit.providers.ibmq.managed import IBMQJobManager
-from qiskit.providers.ibmq import least_busy
+from qiskit_ibm_runtime import QiskitRuntimeService
 from qfaas.utils.logger import logger
 from qfaas.models.backend import IBMQBackendSchema
 from qfaas.database.dbProvider import retrieve_provider
 from datetime import datetime
-from qfaas.models.job import JobSchema
 from qfaas.models.backend import BackendRequestSchema
 from qfaas.database.dbBackend import get_backends_from_db
 import time
 
 
-def initialize_IBMQProvider(ibmqToken: str, hub: str = "ibm-q"):
-    """Initialize IBMQ Provider
+def initialize_IBMQProvider(ibmqToken: str, hub: str = "ibm_quantum_platform"):
+    """Initialize IBMQ Provider using QiskitRuntimeService
 
     Args:
         ibmqToken (str): IBMQ API token
-        hub (str, optional): hub name. Defaults to "ibm-q".
+        hub (str, optional): channel name. Defaults to "ibm_quantum_platform".
 
     Returns:
-        IBMQ AccountProvider
+        QiskitRuntimeService instance or None
     """
     try:
-        # Check current session
-        if IBMQ.active_account():
-            if IBMQ.active_account()["token"] == ibmqToken:
-                IBMQProvider = IBMQ.get_provider(hub=hub)
-                logger.info("Used current IBMQ Provider, hub " + hub)
-            else:
-                IBMQ.disable_account()
-                IBMQProvider = IBMQ.enable_account(ibmqToken, hub=hub)
-                logger.info("Changed current session to new IBMQ Provider, hub " + hub)
-        else:
-            IBMQProvider = IBMQ.enable_account(ibmqToken, hub=hub)
-            logger.info("Enabled new IBMQ Provider, hub " + hub)
+        IBMQProvider = QiskitRuntimeService(channel=hub, token=ibmqToken)
+        logger.info(f"Initialized QiskitRuntimeService, Used current IBMQ Provider, hub {hub}")
+        return IBMQProvider
     except Exception as ex:
-        logger.warning(ex)
+        logger.warning(f"Failed to initialize IBMQ service: {ex}")
         return None
-    return IBMQProvider
 
 
 def get_IBMQ_hubs(ibmqToken: str):
-    """Verify IBMQ account and return list of available hubs
+    """Return list of available channels (hubs) for the IBMQ account
 
     Args:
         ibmqToken (str): IBMQ Token
 
     Returns:
-        List of available hubs or [] if IBMQ Account is not correct
+        List of available channels or [] if IBMQ Account is not correct
     """
-    ibmq = initialize_IBMQProvider(ibmqToken)
     hubs = []
-    if ibmq:
-        # Get all available hubs and store them in the database
-        providers = IBMQ.providers()
-        for pv in providers:
-            if pv.backends()[0]:
-                hubs.append(pv.backends()[0].hub)
-        return hubs
+    try:
+        service = QiskitRuntimeService(token=ibmqToken)
+        # QiskitRuntimeService does not expose 'hubs', but you can list available backends
+        for backend in service.backends():
+            if hasattr(backend, 'channel'):
+                hubs.append(backend.channel)
+        hubs = list(set(hubs))
+    except Exception as ex:
+        logger.warning(f"Failed to get hubs: {ex}")
     return hubs
 
 
@@ -65,14 +53,14 @@ def get_IBMQ_hubs(ibmqToken: str):
 async def get_ibmq_default_hub(user: str):
     provider = await retrieve_provider(user, "ibmq")
     hub = (
-        provider["additionalInfo"]["defaultHub"]
-        if provider["additionalInfo"]["defaultHub"]
-        else "ibm-q"
+        provider["additionalInfo"].get("defaultHub")
+        if provider["additionalInfo"].get("defaultHub")
+        else "ibm_quantum_platform"
     )
     return hub
 
 
-# Pre-filter the approriate IBMQ Backend from the database
+# Pre-filter the appropriate IBMQ Backend from the database
 async def pre_select_ibmq_backend(
     currentUser: str, beReq: BackendRequestSchema, hub: str
 ):
@@ -84,11 +72,11 @@ async def pre_select_ibmq_backend(
             if (
                 int(bk["qubit"]) >= beReq.rQubit
                 and bk["type"] == beReq.type
-                and bk["backendInfo"]["hub"] == hub
+                and bk["backendInfo"].get("hub", "") == hub
             ):
                 backend.append(bk["name"])
         else:
-            if int(bk["qubit"]) >= beReq.rQubit and bk["backendInfo"]["hub"] == hub:
+            if int(bk["qubit"]) >= beReq.rQubit and bk["backendInfo"].get("hub", "") == hub:
                 backend.append(bk["name"])
     return backend
 
@@ -99,23 +87,24 @@ async def get_ibmq_backends(user, hub: str) -> list:
     providerInfo = await retrieve_provider(username, "ibmq")
     providerToken = providerInfo["providerToken"]
     provider = initialize_IBMQProvider(ibmqToken=providerToken, hub=hub)
+    if not provider:
+        return backendList
     for backend in provider.backends():
         try:
             backendList.append(
                 IBMQBackendSchema(
-                    name=backend.name(),
-                    type="simulator"
-                    if backend.configuration().simulator is True
-                    else "qpu",
-                    qubit=backend.configuration().n_qubits,
+                    name=backend.name,
+                    type="simulator" if getattr(backend, 'simulator', False) else "qpu",
+                    qubit=getattr(backend, 'num_qubits', None),
                     user=username,
-                    active=backend.status().operational,
+                    active=getattr(backend, 'operational', True),
                     sdk="qiskit",
                     backendInfo={
-                        "hub": backend.hub,
-                        "group": backend.group,
-                        "project": backend.project,
-                        "basis_gates": str(backend.configuration().basis_gates),
+                        "hub": hub,
+                        "name": backend.name,
+                        "backend_version": backend.backend_version,
+                        "num_qubits": backend.num_qubits,
+                        "basis_gates": str(getattr(backend.configuration(), 'basis_gates', [])),
                         "last_updated": str(datetime.now()),
                     },
                 )
@@ -126,22 +115,24 @@ async def get_ibmq_backends(user, hub: str) -> list:
     return backendList
 
 
-async def check_job_result(user, backend, hub, jobId):
+async def check_job_result(user, backend_name, hub, jobId):
     username = user["username"]
     providerInfo = await retrieve_provider(username, "ibmq")
     providerToken = providerInfo["providerToken"]
     provider = initialize_IBMQProvider(ibmqToken=providerToken, hub=hub)
-    backend = provider.get_backend(backend)
-    job = backend.retrieve_job(jobId)
+    if not provider:
+        return None
+    backend = provider.backend(backend_name)
+    job = provider.job(jobId)
     jobStatus = ibmq_job_monitor(job, 2, 5)
     jobResult = None
     if jobStatus.get("status") == "DONE":
         counts = job.result()
         jobResult = dict(counts.get_counts())
     return {
-        "providerJobId": job.job_id(),
+        "providerJobId": job.job_id,
         "jobStatus": jobStatus,
-        "backend": {"name": job.backend().name(), "hub": job.backend().hub},
+        "backend": {"name": backend.name, "hub": hub},
         "jobResult": jobResult,
     }
 
@@ -150,7 +141,7 @@ def ibmq_job_monitor(job, interval: int, max_iterations: int):
     """Monitor job status at IBM Quantum
 
     Args:
-    - job (IBMQJob): Job instance
+    - job: Job instance
     - interval (int): Interval time to check job status (in seconds)
 
     Returns:
@@ -158,14 +149,10 @@ def ibmq_job_monitor(job, interval: int, max_iterations: int):
     """
     status = job.status()
     iteration = 0
-    # max_iterations = 10 # Maximum number of iterations to check
-
     while status.name not in ["DONE", "CANCELLED", "ERROR"]:
         time.sleep(interval)
         status = job.status()
         msg = status.value
-        if status.name == "QUEUED":
-            details = msg + " (%s)" % job.queue_position()
         iteration += 1
         if iteration >= max_iterations:
             break
@@ -177,15 +164,17 @@ def ibmq_job_monitor(job, interval: int, max_iterations: int):
 
 def get_least_busy_backend(preSelectedBackend: list, providerToken: str, hub: str):
     provider = initialize_IBMQProvider(ibmqToken=providerToken, hub=hub)
+    if not provider:
+        return None
     backends = []
     logger.info(
         "Select least busy backend in the following candidates: "
         + str(preSelectedBackend)
     )
     for bk in preSelectedBackend:
-        backends.append(provider.get_backend(bk))
+        backends.append(provider.backend(bk))
     try:
-        selectedBackend = least_busy(backends).name()
+        selectedBackend =  provider.least_busy(Operational=True).name()
     except Exception as e:
         logger.error(e)
     return selectedBackend

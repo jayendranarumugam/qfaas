@@ -2,6 +2,7 @@
 from logging.config import dictConfig
 import logging
 from pydantic import BaseModel
+from typing import ClassVar
 
 
 class LogConfig(BaseModel):
@@ -12,26 +13,32 @@ class LogConfig(BaseModel):
     LOG_LEVEL: str = "DEBUG"
 
     # Logging config
-    version = 1
-    disable_existing_loggers = False
-    formatters = {
+    version: ClassVar[int] = 1
+    disable_existing_loggers: ClassVar[bool] = False
+    formatters: ClassVar[dict] = {
         "default": {
             "()": "uvicorn.logging.DefaultFormatter",
             "fmt": LOG_FORMAT,
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     }
-    handlers = {
+    handlers: ClassVar[dict] = {
         "default": {
             "formatter": "default",
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stderr",
         },
     }
-    loggers = {
+    loggers: ClassVar[dict] = {
         "qfaascore": {"handlers": ["default"], "level": LOG_LEVEL},
     }
 
 # Config logging
-dictConfig(LogConfig().dict())
+dictConfig({
+    "version": LogConfig.version,
+    "disable_existing_loggers": LogConfig.disable_existing_loggers,
+    "formatters": LogConfig.formatters,
+    "handlers": LogConfig.handlers,
+    "loggers": LogConfig.loggers,
+})
 logger = logging.getLogger("qfaascore")

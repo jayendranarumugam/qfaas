@@ -18,7 +18,7 @@ class JobSchema(BaseModel):
     jobInfo: Optional[dict] = {}
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "providerJobId": "abc12345",
                 "provider": "ibmq",
@@ -53,7 +53,7 @@ class UpdateJobModel(BaseModel):
     jobInfo: Optional[dict]
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "providerJobId": "abc12345",
                 "provider": "ibmq",
@@ -86,7 +86,7 @@ class FilterJobModel(BaseModel):
     owner: Optional[str]
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "jobId": "62709b67c81dd215de1324fb",
                 "providerJobId": "abc12345",

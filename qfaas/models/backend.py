@@ -16,7 +16,7 @@ class BackendSchema(BaseModel):
     backendInfo: dict | None = None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "qiskit_simulator",
                 "provider": "qfaas",
@@ -25,7 +25,7 @@ class BackendSchema(BaseModel):
                 "user": "hoant",
                 "active": True,
                 "sdk": "qiskit",
-                "backendInfo": {"hub": "ibm-q"},
+                "backendInfo": {"hub": "ibm_quantum_platform"},
             }
         }
 
@@ -43,7 +43,7 @@ class UpdateBackendModel(BaseModel):
     backendInfo: dict | None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "qiskit_simulator",
                 "provider": "qfaas",
@@ -52,7 +52,7 @@ class UpdateBackendModel(BaseModel):
                 "user": "hoant",
                 "active": True,
                 "sdk": "qiskit",
-                "backendInfo": {"hub": "ibm-q"},
+                "backendInfo": {"hub": "ibm_quantum_platform"},
             }
         }
 
@@ -79,7 +79,7 @@ class BackendRequestSchema(BaseModel):
     # extraInfo: Optional[dict]
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "sdk": "qiskit",
                 "provider": "ibmq",

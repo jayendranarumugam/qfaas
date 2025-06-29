@@ -1,6 +1,5 @@
 from curses.ascii import isalnum
 from datetime import datetime, timedelta
-from turtle import update
 from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status

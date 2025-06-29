@@ -10,14 +10,14 @@ class ProviderSchema(BaseModel):
     additionalInfo: Optional[dict] = None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "username": "qfaas",
                 "providerName": "ibmq",
                 "providerToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
                 "additionalInfo": {
-                    "hub": ["ibm-q", "ibm-q-qfaas"],
-                    "defaultHub": "ibm-q",
+                    "hub": ["ibm_quantum_platform", "ibm_quantum-qfaas"],
+                    "defaultHub": "ibm_quantum_platform",
                 },
             }
         }
@@ -29,12 +29,12 @@ class CreateProviderModel(BaseModel):
     additionalInfo: Optional[dict] = None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "providerName": "ibmq",
                 "providerToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
                 "additionalInfo": {
-                    "defaultHub": "ibm-q"
+                    "defaultHub": "ibm_quantum_platform"
                 },
             }
         }
@@ -45,11 +45,11 @@ class UpdateProviderModel(BaseModel):
     additionalInfo: Optional[dict] = None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "providerToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
                 "additionalInfo": {
-                    "defaultHub": "ibm-q"
+                    "defaultHub": "ibm_quantum_platform"
                 },
             }
         }

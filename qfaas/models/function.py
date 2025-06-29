@@ -9,7 +9,7 @@ class FunctionCodeSchema(BaseModel):
     handlerQs: Optional[str] = None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "handlerPy": "base64(source_code_Python)",
                 "handlerQs": "base64(source_code_QSharp)",
@@ -26,7 +26,7 @@ class FunctionSchema(BaseModel):
     public: bool = Field(...)
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "qrng-aio",
                 "template": "qiskit",
@@ -54,7 +54,7 @@ class FunctionInvocationSchema(BaseModel):
     local: Optional[bool] = 0
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "input": 10,
                 "shots": 10,
@@ -74,7 +74,7 @@ class UpdateFunctionModel(BaseModel):
     public: Optional[str]
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "random-number",
                 "fnCode": {
@@ -91,7 +91,7 @@ class ScaleFunctionModel(BaseModel):
     replicas: int = Field(...)
 
     class Config:
-        schema_extra = {"example": {"replicas": 1}}
+        json_schema_extra = {"example": {"replicas": 1}}
 
 
 def ResponseModel(data, message):
