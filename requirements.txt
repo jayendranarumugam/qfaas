@@ -15,6 +15,7 @@ passlib==1.7.4
 python-multipart==0.0.5
 bcrypt==3.2.2
 requests==2.27.0
+dnspython == 2.5.0
 # strangeworks==0.2.13
 # strangeworks==0.5.9
 # strangeworks-braket==1.0.14
