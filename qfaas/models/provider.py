@@ -3,6 +3,19 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
 
 
+class IBMQAdditionalInfo(BaseModel):
+    """Schema for IBMQ provider additional information"""
+    defaultChannel: Optional[str] = Field(default="ibm_cloud", description="Default IBM Quantum channel")
+    defaultInstance: Optional[str] = Field(default=None, description="Default IBM Quantum instance (CRN or service name)")
+    instances: Optional[List[str]] = Field(default=None, description="List of available instances (auto-populated)")
+
+
+class BraketAdditionalInfo(BaseModel):
+    """Schema for AWS Braket provider additional information"""
+    swUser: Optional[str] = Field(default=None, description="Strangeworks user")
+    # Add other Braket-specific fields as needed
+
+
 class ProviderSchema(BaseModel):
     username: str = Field(...)
     providerName: str = Field(...)
@@ -16,8 +29,9 @@ class ProviderSchema(BaseModel):
                 "providerName": "ibmq",
                 "providerToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
                 "additionalInfo": {
-                    "hub": ["ibm_quantum_platform", "ibm_quantum-qfaas"],
-                    "defaultHub": "ibm_quantum_platform",
+                    "defaultChannel": "ibm_cloud",
+                    "defaultInstance": "ibmcloudinstance1",
+                    "instances": ["crn:v1:bluemix:public:quantum-computing:us-east:a/...", "hub/group/project"]
                 },
             }
         }
@@ -34,7 +48,8 @@ class CreateProviderModel(BaseModel):
                 "providerName": "ibmq",
                 "providerToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
                 "additionalInfo": {
-                    "defaultHub": "ibm_quantum_platform"
+                    "defaultChannel": "ibm_cloud",
+                    "defaultInstance": "ibmcloudinstance1"
                 },
             }
         }
@@ -49,7 +64,8 @@ class UpdateProviderModel(BaseModel):
             "example": {
                 "providerToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
                 "additionalInfo": {
-                    "defaultHub": "ibm_quantum_platform"
+                    "defaultChannel": "ibm_cloud",
+                    "defaultInstance": "ibmcloudinstance1"
                 },
             }
         }

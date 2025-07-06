@@ -9,7 +9,8 @@
       "extensions": [
         "ms-python.python",
         "ms-python.debugpy",
-        "GitHub.copilot"
+        "GitHub.copilot",
+        "humao.rest-client"
       ]
     }
   }

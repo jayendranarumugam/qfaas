@@ -16,7 +16,7 @@ from qfaas.models.provider import (
     UpdateProviderModel,
 )
 from qfaas.utils.logger import logger
-from qfaas.providers.ibmq import get_IBMQ_hubs
+from qfaas.providers.ibmq import get_IBMQ_instances
 from qfaas.providers.braketsw import initialize_SWProvider
 
 from qfaas.routes.backendRoute import fetch_backend
@@ -56,15 +56,30 @@ async def add_provider_data(
     # Verify provider info
     if providerName == "ibmq":
         logger.info("Verifying IBMQ Token")
-        hubs = get_IBMQ_hubs(provider["providerToken"])
-        defaultHub = provider["additionalInfo"]["defaultHub"]
-        if hubs:
-            provider["additionalInfo"]["hub"] = hubs
-            if defaultHub:
-                if defaultHub not in hubs:
-                    provider["additionalInfo"]["defaultHub"] = hubs[0]
-            else:
-                provider["additionalInfo"]["defaultHub"] = hubs[0]
+        # Initialize additionalInfo if None
+        if provider.get("additionalInfo") is None:
+            provider["additionalInfo"] = {}
+        
+        # Get defaultChannel and defaultInstance from additionalInfo
+        defaultChannel = provider["additionalInfo"].get("defaultChannel")
+        defaultInstance = provider["additionalInfo"].get("defaultInstance")
+        
+        # Call function with defaultChannel and defaultInstance if provided
+        if defaultChannel:
+            provider["additionalInfo"]["defaultChannel"] = defaultChannel
+            instances = get_IBMQ_instances(provider["providerToken"], defaultChannel, defaultInstance)
+            
+        else:
+            provider["additionalInfo"]["defaultChannel"] = "ibm_cloud"
+            instances = get_IBMQ_instances(provider["providerToken"], "ibm_cloud", defaultInstance)
+        
+        if instances:
+            provider["additionalInfo"]["instances"] = instances
+            # Store defaultInstance if provided
+            if defaultInstance:
+                provider["additionalInfo"]["defaultInstance"] = defaultInstance
+            # Add Additional properties in future if needed to provider["additionalInfo"]
+                
         else:
             return ErrorResponseModel(
                 "Invalid IBMQ API Token",
@@ -137,15 +152,28 @@ async def update_provider_data(
     # Verifying API Token
     if providerName == "ibmq":
         logger.info("Verifying IBMQ Token")
-        hubs = get_IBMQ_hubs(req.providerToken)
-        if hubs:
-            req.additionalInfo["hub"] = hubs
-            defaultHub = req.additionalInfo["defaultHub"]
-            if defaultHub:
-                if defaultHub not in hubs:
-                    req.additionalInfo["defaultHub"] = hubs[0]
-            else:
-                req.additionalInfo["defaultHub"] = hubs[0]
+        # Initialize additionalInfo if None
+        if req.additionalInfo is None:
+            req.additionalInfo = {}
+        
+        # Get defaultChannel and defaultInstance from additionalInfo
+        defaultChannel = req.additionalInfo.get("defaultChannel")
+        defaultInstance = req.additionalInfo.get("defaultInstance")
+        
+        # Call function with defaultChannel and defaultInstance if provided
+        if defaultChannel:
+            instances = get_IBMQ_instances(req.providerToken, defaultChannel, defaultInstance)
+        else:
+            instances = get_IBMQ_instances(req.providerToken, "ibm_cloud", defaultInstance)
+        
+        if instances:
+            req.additionalInfo["instances"] = instances
+            # Set defaultChannel if not provided, use function's default
+            if not defaultChannel:
+                req.additionalInfo["defaultChannel"] = "ibm_cloud"
+            # Store defaultInstance if provided
+            if defaultInstance:
+                req.additionalInfo["defaultInstance"] = defaultInstance
         else:
             return ErrorResponseModel(
                 "Invalid IBMQ API Token",
