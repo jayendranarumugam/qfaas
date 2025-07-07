@@ -3,9 +3,10 @@ from qfaas.models.backend import BackendRequestSchema, BackendResponseSchema
 from qfaas.database.dbBackend import get_backends_from_db
 from qfaas.database.dbProvider import retrieve_provider
 from qfaas.providers.ibmq import (
+    get_ibmq_default_instance,
     get_least_busy_backend,
     pre_select_ibmq_backend,
-    get_ibmq_default_hub,
+    get_ibmq_default_channel,
 )
 from qfaas.database.dbUser import retrieve_user_token
 
@@ -59,15 +60,16 @@ async def select_internal_backend(beReq: BackendRequestSchema, currentUser: str)
 async def select_ibmq_backend(beReq: BackendRequestSchema, currentUser: str):
     beRes = None
     providerToken = await get_provider_token(currentUser, beReq.provider)
-    hub = await get_ibmq_default_hub(currentUser)
+    channel = await get_ibmq_default_channel(currentUser)
+    instance = await get_ibmq_default_instance(currentUser)
     # Auto select the backend
     if beReq.autoSelect:
         # Find backend have enough qubit
-        preSelectedBackend = await pre_select_ibmq_backend(currentUser, beReq, hub)
+        preSelectedBackend = await pre_select_ibmq_backend(currentUser, beReq, channel)
         if preSelectedBackend:
             # Get least_busy backend from IBMQ backend
             selectedBackendName = get_least_busy_backend(
-                preSelectedBackend, providerToken, hub
+                preSelectedBackend, providerToken, channel,instance
             )
             selectedBackend = await get_backends_from_db(
                 currentUser, "ibmq", selectedBackendName

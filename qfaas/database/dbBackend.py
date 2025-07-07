@@ -1,4 +1,5 @@
 from bson.objectid import ObjectId
+from bson.errors import InvalidId
 from .dbConnect import dbClient
 from qfaas.utils.logger import logger
 
@@ -19,6 +20,24 @@ def backend_helper(backend) -> dict:
         "sdk": str(backend["sdk"]),
         "backendInfo": dict(backend["backendInfo"]),
     }
+
+
+# Helper function to validate ObjectId
+def is_valid_objectid(id_string: str) -> bool:
+    """
+    Validate if a string is a valid ObjectId
+
+    Args:
+        id_string (str): The string to validate
+
+    Returns:
+        bool: True if valid ObjectId, False otherwise
+    """
+    try:
+        ObjectId(id_string)
+        return True
+    except (InvalidId, TypeError):
+        return False
 
 
 # CRUD operations
@@ -75,9 +94,15 @@ async def add_many_backends(backend_data: list):
 
 # Retrieve a backend with a matching ID
 async def retrieve_backend(id: str) -> dict:
+    # Validate ObjectId format
+    if not is_valid_objectid(id):
+        logger.warning(f"Invalid ObjectId format: {id}")
+        return None
+    
     backend = await backend_collection.find_one({"_id": ObjectId(id)})
     if backend:
         return backend_helper(backend)
+    return None
 
 
 # Retrieve a backend by name
@@ -94,6 +119,12 @@ async def update_backend(id: str, data: dict):
     # Return false if an empty request body is sent.
     if len(data) < 1:
         return False
+    
+    # Validate ObjectId format
+    if not is_valid_objectid(id):
+        logger.warning(f"Invalid ObjectId format: {id}")
+        return False
+    
     backend = await backend_collection.find_one({"_id": ObjectId(id)})
     if backend:
         updated_backend = await backend_collection.update_one(
@@ -107,10 +138,16 @@ async def update_backend(id: str, data: dict):
 
 # Delete a backend from the database
 async def delete_backend(id: str):
+    # Validate ObjectId format
+    if not is_valid_objectid(id):
+        logger.warning(f"Invalid ObjectId format: {id}")
+        return False
+    
     backend = await backend_collection.find_one({"_id": ObjectId(id)})
     if backend:
         await backend_collection.delete_one({"_id": ObjectId(id)})
         return True
+    return False
 
 
 # Delete all backends of a user

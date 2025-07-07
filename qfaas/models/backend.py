@@ -25,7 +25,7 @@ class BackendSchema(BaseModel):
                 "user": "hoant",
                 "active": True,
                 "sdk": "qiskit",
-                "backendInfo": {"hub": "ibm_quantum_platform"},
+                "backendInfo": {"channel": "ibm_cloud"},
             }
         }
 
@@ -52,7 +52,7 @@ class UpdateBackendModel(BaseModel):
                 "user": "hoant",
                 "active": True,
                 "sdk": "qiskit",
-                "backendInfo": {"hub": "ibm_quantum_platform"},
+                "backendInfo": {"channel": "ibm_cloud"},
             }
         }
 

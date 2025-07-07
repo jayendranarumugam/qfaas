@@ -24,7 +24,7 @@ from qfaas.models.user import UserSchema
 from qfaas.database.dbUser import retrieve_user
 
 # Get IBMQ Backends
-from qfaas.providers.ibmq import get_ibmq_backends, get_ibmq_default_hub
+from qfaas.providers.ibmq import get_ibmq_backends, get_ibmq_default_channel, get_ibmq_default_instance
 from qfaas.providers.braketsw import get_braketsw_backends
 from qfaas.dependency.auth import get_current_active_user
 from qfaas.handlers.backendHandler import select_backend
@@ -68,7 +68,7 @@ async def backend_selection_route(
         return ErrorResponseModel(
             "Backend not found",
             404,
-            "No such backend found. Please check your request parameters (and default hub name in case of using IBM Quantum).",
+            "No such backend found. Please check your request parameters (and default channel name or instance in case of using IBM Quantum).",
         )
 
 
@@ -93,7 +93,7 @@ async def add_backend_data(backend: BackendSchema = Body(...)):
 @router.get("/", response_description="Backends retrieved")
 async def get_backends(
     provider: ProviderName, currentUsername: str = Depends(get_current_active_user)
-) -> list:
+):
     """Get backends list from local Database. (To retrieve updated information from external provider, use the **fetch()** method)
 
     **Args**:
@@ -102,6 +102,7 @@ async def get_backends(
     Returns:
     - **backendList** (list): Backend list from local database.
     """
+    backendList = []
     if provider == "all":
         backendList = await get_backends_from_db(currentUsername)
         return ResponseModel(
@@ -133,7 +134,7 @@ async def get_backends(
 )
 async def fetch_backend(
     provider: ProviderName, currentUsername: str = Depends(get_current_active_user)
-) -> list:
+):
     """
     Fetch new backend information from Quantum Providers and synchonize with local database.
 
@@ -145,15 +146,17 @@ async def fetch_backend(
     """
     currentUser = await retrieve_user(currentUsername)
     if provider == "all":
-        hub = await get_ibmq_default_hub(currentUsername)
-        ibmqBackend = await get_ibmq_backends(currentUser, hub)
+        channel = await get_ibmq_default_channel(currentUsername)
+        instance = await get_ibmq_default_instance(currentUsername)
+        ibmqBackend = await get_ibmq_backends(currentUser, channel, instance)
         braketSwBackend = await get_braketsw_backends(currentUser)
         internalBackend = await get_backends_from_db(currentUsername, "qfaas")
         backendList = ibmqBackend + braketSwBackend + internalBackend
         provider = ""
     elif provider == "ibmq":
-        hub = await get_ibmq_default_hub(currentUsername)
-        backendList = await get_ibmq_backends(currentUser, hub)
+        channel = await get_ibmq_default_channel(currentUsername)
+        instance = await get_ibmq_default_instance(currentUsername)
+        backendList = await get_ibmq_backends(currentUser, channel, instance)
     elif provider == "braket-sw":
         backendList = await get_braketsw_backends(currentUser)
         # Hot fix for braket-sw backend retrieval error
