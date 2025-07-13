@@ -1,0 +1,9 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway:  https://a08f6df193ee.ngrok-free.app
+functions:  qiskit-my-first-function:
+    lang: qiskit
+    handler: ./qiskit-my-first-function
+    image: qiskit-my-first-function:latest
+
